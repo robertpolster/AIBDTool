@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI FrontEnd</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom right, #ECEFF1, #CFD8DC);
+            padding: 0; /* Remove padding for full-screen effect */
+            margin: 0; /* Remove margins */
+            color: #333;
+            overflow-x: hidden; /* Prevent horizontal overflow */
+        }
+
+        .center-it {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-sizing: border-box; 
+            overflow-y: auto; /* Ensure scrolling when content exceeds screen height */
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 20px;
+            overflow-wrap: break-word; 
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        button, input[type="submit"], select {
+            border: 1px solid #dcdcdc;
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 10px;
+            background-color: #3498db;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover, input[type="submit"]:hover {
+            background-color: #2980b9;
+        }
+
+        #response {
+            margin-top: 30px;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: calc(100vh - 200px); 
+            overflow-y: auto; 
+        }
+
+        #loading {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001; /* Make sure loading is on top */
+            background: rgba(0,0,0,0.6);
+            padding: 20px;
+            border-radius: 5px;
+            color: white;
+            display: none;
+        }
+        #uploadStatus {
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+
+        .full-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            background-color: #fff;
+            box-shadow: none;
+            width: 100%; 
+            height: 100vh; 
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="center-it">Business Analyst</h1>
+    <h1>Upload a File</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="file" name="file" accept=".pdf, .docx">
+        <input type="submit" value="Upload Past Project File">
+    </form>
+    <div id="uploadStatus"></div>
+    <button id="downloadProjects">Download Projects</button>
+    <button id="downloadFunding">Download Funding Sources</button>
+    <button id="make_top_project_list_csv">Make Top Projects List</button>
+    <button id="get_relevent_five_projects">Get Relevant Projects List</button>
+
+    <label for="choice">Choose a project:</label>
+    <select id="choice" name="choice">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+    </select>
+
+    <button id="write_proposal">Write Proposal</button>
+
+    <div id="response">
+        <h2>Response:</h2>
+        <pre></pre>
+    </div>
+</div>
+
+<div id="loading">Loading...</div>
+
+<script>
+    function displayResponse(data) {
+    if (Array.isArray(data)) { // Check if the response data is an array
+        let formattedData = "";
+        data.forEach((item, index) => {
+            formattedData += (index + 1) + ". " + item + "\n\n";
+        });
+        $('#response pre').text(formattedData);
+    } else {
+        $('#response pre').text(JSON.stringify(data, null, 2));
+    }
+}
+
+        function resetUploadStatus() {
+        fetch("/reset_upload_status/")
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== "Upload status reset") {
+                console.error("Failed to reset upload status");
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    window.onload = resetUploadStatus;
+
+
+    function showLoading() {
+        $('#loading').show();
+    }
+
+    function hideLoading() {
+        $('#loading').hide();
+    }
+
+    function handleError(err) {
+        hideLoading();
+        displayResponse(err.responseText);
+    }
+
+    $('#downloadProjects').click(function() {
+        showLoading();
+        $.post("/download_projects")
+            .done(function(data) {
+                hideLoading();
+                displayResponse(data);
+            })
+            .fail(handleError);
+    });
+
+    $('#downloadFunding').click(function() {
+        showLoading();
+        $.post("/download_funding")
+            .done(function(data) {
+                hideLoading();
+                displayResponse(data);
+            })
+            .fail(handleError);
+    });
+
+    $('#make_top_project_list_csv').click(function() {
+        showLoading();
+        $.post("/make_top_project_list_csv")
+            .done(function(data) {
+                hideLoading();
+                displayResponse(data);
+            })
+            .fail(handleError);
+    });
+
+    $('#get_relevent_five_projects').click(function() {
+        showLoading();
+        $.post("/get_relevent_five_projects")
+            .done(function(data) {
+                hideLoading();
+                displayResponse(data);
+            })
+            .fail(handleError);
+    });
+
+    $('#write_proposal').click(function() {
+        showLoading();
+        let choice = $('#choice').val();
+        $.get(`/write_proposal?choice=${choice}`)
+            .done(function(data) {
+                hideLoading();
+                displayResponse(data);
+            })
+            .fail(handleError);
+    });
+    // Handle the file upload using AJAX
+    $('#uploadForm').submit(function(e) {
+        e.preventDefault();  // Prevent the form from doing a page reload
+
+        let formData = new FormData();
+        formData.append('file', $('#file')[0].files[0]);
+
+        showLoading();
+
+        $.ajax({
+            url: "/upload/",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                hideLoading();
+                $('#uploadStatus').html("File uploaded successfully");
+            },
+            error: function(jqXHR, textStatus, errorMessage) {
+                hideLoading();
+                $('#uploadStatus').html("Error: " + errorMessage);
+            }
+        });
+    });
+
+</script>
+
+
+</body>
+</html>
